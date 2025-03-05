@@ -51,3 +51,12 @@ prisma/migrations/
 
 # Windows
 Thumbs.db
+
+# Frontend specific
+/frontend/.next/
+/frontend/out/
+/frontend/node_modules/
+/frontend/.env.local
+/frontend/.eslintcache
+/frontend/.pnp
+/frontend.pnp.*
