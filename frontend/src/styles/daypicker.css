@@ -1,0 +1,19 @@
+/* src/styles/daypicker.css */
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: #3b82f6;
+  --rdp-background-color: #e0e7ff;
+}
+
+.rdp-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+}
+  
+  .rdp-nav_button {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
