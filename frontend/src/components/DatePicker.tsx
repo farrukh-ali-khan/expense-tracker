@@ -1,14 +1,19 @@
-// Example: src/components/DatePicker.tsx
+// src/components/DatePicker.tsx
 "use client";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
-import { DayPicker } from "react-day-picker";
-
-export function DatePicker() {
-  return (
-    <DayPicker
-      mode="single"
-      fromDate={new Date(new Date().getFullYear() - 1, 0, 1)}
-      toDate={new Date(new Date().getFullYear() + 1, 11, 31)}
-    />
-  );
-}
+export const CustomDatePicker = ({
+  selected,
+  onChange,
+}: {
+  selected: Date;
+  onChange: (date: Date) => void;
+}) => (
+  <DatePicker
+    selected={selected}
+    onChange={(date) => date && onChange(date)}
+    className="border rounded p-2 w-full"
+    dateFormat="MM/dd/yyyy"
+  />
+);

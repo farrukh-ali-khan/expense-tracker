@@ -11,8 +11,8 @@ import { RecentTransactions } from "@/components/RecentTransactions";
 import { BudgetProgress } from "@/components/BudgetProgress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "lucide-react";
-import { Button } from "react-day-picker";
 import { PlusIcon } from "@heroicons/react/24/outline";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
