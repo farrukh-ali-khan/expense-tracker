@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -21,34 +20,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "@radix-ui/react-icons";
+import { format } from "date-fns";
+import { Transaction } from "@/types";
+import { Category } from "@/lib/api/categories";
 
 const transactionSchema = z.object({
   description: z.string().min(1, "Description is required"),
-  amount: z.number().min(0.01, "Amount must be at least 0.01"),
+  amount: z.string().refine((val) => !isNaN(Number(val)), {
+    message: "Must be a valid number", // Validation error message
+  }),
   date: z.date(),
-  categoryId: z.number().min(1, "Category is required"),
+  categoryId: z.string().min(1, "Category is required"),
   type: z.enum(["INCOME", "EXPENSE"]),
 });
 
 export type TransactionFormData = z.infer<typeof transactionSchema>;
 
-export function TransactionForm({
-  categories,
+export default function TransactionForm({
+  initialData,
   onSubmit,
-  loading,
+  buttonText = "Add Transaction",
+  categories = [],
+  loading = false,
 }: {
-  categories: Category[];
+  initialData?: Partial<Transaction>;
   onSubmit: (data: TransactionFormData) => void;
+  buttonText?: string;
+  categories?: Category[];
   loading?: boolean;
 }) {
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
-      description: "",
-      amount: 0,
-      date: new Date(),
-      categoryId: undefined,
-      type: "EXPENSE",
+      description: initialData?.description || "",
+      amount: initialData?.amount?.toString() || "0",
+      type: initialData?.type || "EXPENSE",
+      categoryId: initialData?.category?.id?.toString() || "",
+      date: initialData?.date ? new Date(initialData.date) : new Date(),
     },
   });
 
@@ -80,7 +95,7 @@ export function TransactionForm({
                   type="number"
                   step="0.01"
                   {...field}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  onChange={(e) => field.onChange(e.target.value)}
                 />
               </FormControl>
               <FormMessage />
@@ -92,15 +107,34 @@ export function TransactionForm({
           control={form.control}
           name="date"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>Date</FormLabel>
-              <FormControl>
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={field.onChange}
-                />
-              </FormControl>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      className="pl-3 text-left font-normal"
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
@@ -113,9 +147,9 @@ export function TransactionForm({
             <FormItem>
               <FormLabel>Category</FormLabel>
               <Select
-                onValueChange={(value) => field.onChange(Number(value))}
-                value={field.value?.toString()}
-                disabled={!categories?.length}
+                onValueChange={field.onChange}
+                value={field.value}
+                disabled={!categories.length}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -123,7 +157,7 @@ export function TransactionForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {categories?.length > 0 ? (
+                  {categories.length > 0 ? (
                     categories.map((category) => (
                       <SelectItem
                         key={category.id}
@@ -133,12 +167,8 @@ export function TransactionForm({
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem
-                      value="not-found"
-                      disabled
-                      className="text-gray-500"
-                    >
-                      Create categories first
+                    <SelectItem value="none" disabled>
+                      No categories available
                     </SelectItem>
                   )}
                 </SelectContent>
@@ -171,7 +201,7 @@ export function TransactionForm({
         />
 
         <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : "Create Transaction"}
+          {loading ? "Saving..." : buttonText}
         </Button>
       </form>
     </Form>

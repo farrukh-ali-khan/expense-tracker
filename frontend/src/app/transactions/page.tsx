@@ -2,7 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Transaction } from "@/types/transaction";
-import { getTransactions } from "@/lib/api/transactions";
+import { getTransactions, deleteTransaction } from "@/lib/api/transactions";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,25 +14,39 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { toast } from "sonner";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { EditTransactionDialog } from "@/components/EditTransactionDialog";
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const loadTransactions = async () => {
+    try {
+      const data = await getTransactions();
+      setTransactions(data);
+    } catch (error) {
+      toast.error("Failed to load transactions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadTransactions = async () => {
-      try {
-        const data = await getTransactions();
-        setTransactions(data);
-      } catch (error) {
-        toast.error("Failed to load transactions");
-      } finally {
-        setLoading(false);
-      }
-    };
     loadTransactions();
   }, []);
+
+  const handleDelete = async (id: number) => {
+    if (confirm("Are you sure you want to delete this transaction?")) {
+      try {
+        await deleteTransaction(id);
+        setTransactions(transactions.filter((t) => t.id !== id));
+        toast.success("Transaction deleted successfully");
+      } catch (error) {
+        toast.error("Failed to delete transaction");
+      }
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -54,6 +68,7 @@ export default function TransactionsPage() {
             <TableHead>Category</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead>Type</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -85,6 +100,21 @@ export default function TransactionsPage() {
                 >
                   {transaction.type}
                 </span>
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  <EditTransactionDialog
+                    transaction={transaction}
+                    onSuccess={loadTransactions}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(transaction.id)}
+                  >
+                    <TrashIcon className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
