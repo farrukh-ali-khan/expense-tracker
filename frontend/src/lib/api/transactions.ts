@@ -15,27 +15,21 @@ export const getTransactions = async (): Promise<Transaction[]> => {
 
 export const createTransaction = async (data: TransactionFormData) => {
   try {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
-
     const response = await api.post(
       "/transactions",
       {
         ...data,
         amount: Number(data.amount),
         date: data.date.toISOString().split("T")[0], // Format as YYYY-MM-DD
+        categoryId: Number(data.categoryId), // Convert to number
       },
       {
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       }
     );
-
     return response.data;
   } catch (error) {
     let errorMessage = "Failed to create transaction";
@@ -51,7 +45,7 @@ export const createTransaction = async (data: TransactionFormData) => {
 
       if (error.response?.status === 400) {
         errorMessage =
-          "Invalid transaction data: " +
+          "Invalid data: " +
           (error.response.data.errors?.join(", ") || "Check all fields");
       }
     }

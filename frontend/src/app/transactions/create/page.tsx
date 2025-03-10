@@ -1,14 +1,29 @@
 // src/app/transactions/create/page.tsx
 "use client";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import TransactionForm from "@/components/TransactionForm";
 import { createTransaction } from "@/lib/api/transactions";
+import { getCategories } from "@/lib/api/categories";
+import { Category } from "@/types";
 import { toast } from "sonner";
 
 export default function TransactionCreatePage() {
   const router = useRouter();
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (error) {
+        toast.error("Failed to load categories");
+      }
+    };
+    loadCategories();
+  }, []);
 
   const handleSubmit = async (data: TransactionFormData) => {
     setLoading(true);
@@ -30,7 +45,7 @@ export default function TransactionCreatePage() {
       <h1 className="text-2xl font-bold mb-6">Create New Transaction</h1>
       <TransactionForm
         onSubmit={handleSubmit}
-        buttonText="Create Transaction"
+        categories={categories}
         loading={loading}
       />
     </div>

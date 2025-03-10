@@ -1,5 +1,6 @@
 // src/components/TransactionForm.tsx
 "use client";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -40,9 +41,16 @@ export default function TransactionForm({
   buttonText = "Add Transaction",
   categories = [],
   loading = false,
-}: TransactionFormProps) {
+}: {
+  initialData?: Partial<Transaction>;
+  onSubmit: (data: TransactionFormData) => void;
+  buttonText?: string;
+  categories?: Category[];
+  loading?: boolean;
+}) {
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
+    mode: "onChange",
     defaultValues: {
       description: initialData?.description || "",
       amount: initialData?.amount?.toString() || "0",
@@ -52,9 +60,28 @@ export default function TransactionForm({
     },
   });
 
-  const {
-    formState: { errors },
-  } = form;
+  // Reset category selection when categories load
+  useEffect(() => {
+    if (categories.length > 0) {
+      form.setValue("categoryId", "");
+      form.trigger("categoryId");
+    }
+  }, [categories, form]);
+
+  const transactionSchema = z.object({
+    description: z
+      .string()
+      .min(2, "Description must be at least 2 characters")
+      .max(50, "Description too long"),
+    amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+      message: "Must be a positive number",
+    }),
+    date: z.date(),
+    categoryId: z.string().refine((val) => !isNaN(Number(val)), {
+      message: "Invalid category selection",
+    }),
+    type: z.enum(["INCOME", "EXPENSE"]),
+  });
 
   return (
     <Form {...form}>
@@ -70,7 +97,9 @@ export default function TransactionForm({
                   {...field}
                   placeholder="Enter transaction description"
                   className={
-                    errors.description?.message ? "border-red-500" : ""
+                    form.formState.errors.description?.message
+                      ? "border-red-500"
+                      : ""
                   }
                 />
               </FormControl>
@@ -90,7 +119,11 @@ export default function TransactionForm({
                   type="number"
                   step="0.01"
                   {...field}
-                  className={errors.amount?.message ? "border-red-500" : ""}
+                  className={
+                    form.formState.errors.amount?.message
+                      ? "border-red-500"
+                      : ""
+                  }
                   onChange={(e) => field.onChange(e.target.value)}
                 />
               </FormControl>
@@ -110,18 +143,22 @@ export default function TransactionForm({
                   <FormControl>
                     <Button
                       variant="outline"
-                      className="pl-3 text-left font-normal"
+                      className={
+                        form.formState.errors.date?.message
+                          ? "border-red-500"
+                          : ""
+                      }
                     >
                       {field.value ? (
                         format(field.value, "PPP")
                       ) : (
                         <span>Pick a date</span>
                       )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      <CalendarIcon className="ml-2 h-4 w-4" />
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
                     selected={field.value}
@@ -143,28 +180,36 @@ export default function TransactionForm({
             <FormItem>
               <FormLabel>Category</FormLabel>
               <Select
-                onValueChange={field.onChange}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  form.trigger("categoryId");
+                }}
                 value={field.value}
-                disabled={!categories.length}
+                disabled={categories.length === 0}
               >
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
+                  <SelectTrigger className="min-w-[200px]">
+                    <SelectValue
+                      placeholder={
+                        categories.length === 0
+                          ? "Create categories first"
+                          : "Select category"
+                      }
+                    />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {categories.length > 0 ? (
-                    categories.map((category) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id.toString()}
-                      >
-                        {category.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="none" disabled>
-                      No categories available
+                  {categories.map((category) => (
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                    >
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                  {categories.length === 0 && (
+                    <SelectItem value="nocat" disabled className="hidden">
+                      No categories
                     </SelectItem>
                   )}
                 </SelectContent>
@@ -196,18 +241,14 @@ export default function TransactionForm({
           )}
         />
 
-        <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : buttonText}
+        <Button
+          type="submit"
+          disabled={loading || categories.length === 0}
+          className="w-full"
+        >
+          {loading ? "Processing..." : buttonText}
         </Button>
       </form>
     </Form>
   );
-}
-
-interface TransactionFormProps {
-  initialData?: Partial<Transaction>;
-  onSubmit: (data: TransactionFormData) => void;
-  buttonText?: string;
-  categories?: Category[];
-  loading?: boolean;
 }

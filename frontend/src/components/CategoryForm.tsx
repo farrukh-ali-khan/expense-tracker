@@ -1,8 +1,8 @@
 // src/components/CategoryForm.tsx
 "use client";
 import { useForm } from "react-hook-form";
-import { CategoryType } from "@/types/category";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -11,7 +11,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -19,23 +18,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CategoryType } from "@/types/category";
 
-interface CategoryFormProps {
-  initialData?: {
-    name: string;
-    type: CategoryType;
-  };
-  onSubmit: (data: { name: string; type: CategoryType }) => void;
-  loading?: boolean;
-}
+const categorySchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  type: z.enum(["INCOME", "EXPENSE"]),
+});
 
-export function CategoryForm({
-  initialData,
+export default function CategoryForm({
   onSubmit,
   loading,
-}: CategoryFormProps) {
+}: {
+  onSubmit: (data: { name: string; type: CategoryType }) => void;
+  loading?: boolean;
+}) {
   const form = useForm({
-    defaultValues: initialData || {
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
       name: "",
       type: "EXPENSE" as CategoryType,
     },
@@ -43,10 +42,10 @@ export function CategoryForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
-          control={form.control}
           name="name"
+          control={form.control}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category Name</FormLabel>
@@ -59,22 +58,18 @@ export function CategoryForm({
         />
 
         <FormField
-          control={form.control}
           name="type"
+          control={form.control}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Type</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value}
-                disabled={loading}
-              >
+              <Select onValueChange={field.onChange} value={field.value}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="INCOME">Income</SelectItem>
                   <SelectItem value="EXPENSE">Expense</SelectItem>
+                  <SelectItem value="INCOME">Income</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -83,7 +78,7 @@ export function CategoryForm({
         />
 
         <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : "Save Category"}
+          {loading ? "Saving..." : "Create Category"}
         </Button>
       </form>
     </Form>
