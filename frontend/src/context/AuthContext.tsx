@@ -1,33 +1,30 @@
 // src/context/AuthContext.tsx
 "use client";
-
 import { createContext, useContext, useEffect, useState } from "react";
-import { User } from "@/types/user";
 
-interface AuthContextType {
-  user: User | null;
-  login: (token: string, userData: User) => void;
+type AuthContextType = {
+  user: any;
+  login: (token: string, user: any) => void;
   logout: () => void;
-}
+};
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType>(null!);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    setMounted(true);
+    const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
-    if (storedUser) {
+    if (token && storedUser) {
       setUser(JSON.parse(storedUser));
     }
   }, []);
 
-  const login = (token: string, userData: User) => {
+  const login = (token: string, user: any) => {
     localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(userData));
-    setUser(userData);
+    localStorage.setItem("user", JSON.stringify(user));
+    setUser(user);
   };
 
   const logout = () => {
@@ -36,8 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  if (!mounted) return null;
-
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       {children}
@@ -45,10 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+export function useAuth() {
+  return useContext(AuthContext);
+}

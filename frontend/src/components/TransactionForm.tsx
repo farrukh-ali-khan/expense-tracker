@@ -2,7 +2,6 @@
 "use client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,16 +29,8 @@ import { CalendarIcon } from "@radix-ui/react-icons";
 import { format } from "date-fns";
 import { Transaction } from "@/types";
 import { Category } from "@/lib/api/categories";
-
-const transactionSchema = z.object({
-  description: z.string().min(1, "Description is required"),
-  amount: z.string().refine((val) => !isNaN(Number(val)), {
-    message: "Must be a valid number", // Validation error message
-  }),
-  date: z.date(),
-  categoryId: z.string().min(1, "Category is required"),
-  type: z.enum(["INCOME", "EXPENSE"]),
-});
+import { transactionSchema } from "@/lib/validators/transaction";
+import { z } from "zod";
 
 export type TransactionFormData = z.infer<typeof transactionSchema>;
 
@@ -49,13 +40,7 @@ export default function TransactionForm({
   buttonText = "Add Transaction",
   categories = [],
   loading = false,
-}: {
-  initialData?: Partial<Transaction>;
-  onSubmit: (data: TransactionFormData) => void;
-  buttonText?: string;
-  categories?: Category[];
-  loading?: boolean;
-}) {
+}: TransactionFormProps) {
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -67,6 +52,10 @@ export default function TransactionForm({
     },
   });
 
+  const {
+    formState: { errors },
+  } = form;
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -77,7 +66,13 @@ export default function TransactionForm({
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Enter transaction description" />
+                <Input
+                  {...field}
+                  placeholder="Enter transaction description"
+                  className={
+                    errors.description?.message ? "border-red-500" : ""
+                  }
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -95,6 +90,7 @@ export default function TransactionForm({
                   type="number"
                   step="0.01"
                   {...field}
+                  className={errors.amount?.message ? "border-red-500" : ""}
                   onChange={(e) => field.onChange(e.target.value)}
                 />
               </FormControl>
@@ -206,4 +202,12 @@ export default function TransactionForm({
       </form>
     </Form>
   );
+}
+
+interface TransactionFormProps {
+  initialData?: Partial<Transaction>;
+  onSubmit: (data: TransactionFormData) => void;
+  buttonText?: string;
+  categories?: Category[];
+  loading?: boolean;
 }

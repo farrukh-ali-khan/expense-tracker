@@ -13,13 +13,50 @@ export const getTransactions = async (): Promise<Transaction[]> => {
   }
 };
 
-export const createTransaction = async (data: Transaction) => {
+export const createTransaction = async (data: TransactionFormData) => {
   try {
-    const response = await api.post<Transaction>("/transactions", data);
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await api.post(
+      "/transactions",
+      {
+        ...data,
+        amount: Number(data.amount),
+        date: data.date.toISOString().split("T")[0], // Format as YYYY-MM-DD
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
     return response.data;
   } catch (error) {
-    handleAuthError(error);
-    throw error;
+    let errorMessage = "Failed to create transaction";
+
+    if (axios.isAxiosError(error)) {
+      errorMessage = error.response?.data?.message || error.message;
+
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "/auth/login";
+      }
+
+      if (error.response?.status === 400) {
+        errorMessage =
+          "Invalid transaction data: " +
+          (error.response.data.errors?.join(", ") || "Check all fields");
+      }
+    }
+
+    throw new Error(errorMessage);
   }
 };
 
@@ -28,9 +65,10 @@ export const updateTransaction = async (
   data: Partial<Transaction>
 ) => {
   try {
-    const response = await api.put<Transaction>(`/transactions/${id}`, data, {
+    const token = localStorage.getItem("token");
+    const response = await axios.put(`/api/transactions/${id}`, data, {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });
@@ -38,7 +76,9 @@ export const updateTransaction = async (
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 403) {
-        throw new Error("You don't have permission to edit this transaction");
+        throw new Error(
+          "You do not have permission to update this transaction"
+        );
       }
       throw new Error(
         error.response?.data?.message || "Failed to update transaction"

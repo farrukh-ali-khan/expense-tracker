@@ -1,6 +1,5 @@
-// src/components/EditTransactionDialog.tsx
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Transaction } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,10 +9,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { updateTransaction } from "@/lib/api/transactions"; // Fixed import
-import TransactionForm from "./TransactionForm";
-import { getCategories } from "@/lib/api/categories"; // Add category fetch
+import TransactionForm from "@/components/TransactionForm";
+import { updateTransaction } from "@/lib/api/transactions";
+import { getCategories } from "@/lib/api/categories";
 import { toast } from "sonner";
+import { Category } from "@/types";
 
 export function EditTransactionDialog({
   transaction,
@@ -24,45 +24,50 @@ export function EditTransactionDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const loadCategories = async () => {
-    try {
-      const data = await getCategories();
-      setCategories(data);
-    } catch (error) {
-      toast.error("Failed to load categories");
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (error) {
+        toast.error("Failed to load categories");
+      }
+    };
+
+    if (open) {
+      loadCategories();
     }
-  };
-
-  const handleOpen = () => {
-    loadCategories();
-    setOpen(true);
-  };
+  }, [open]);
 
   const handleSubmit = async (data: Transaction) => {
+    setLoading(true);
     try {
-      await updateTransaction(transaction.id, {
+      const response = await updateTransaction(transaction.id, {
         ...data,
-        userId: currentUser.id, // Add this if your backend requires user ID
+        userId: transaction.userId, // Preserve original user ID
       });
-      onSuccess();
-      setOpen(false);
-      toast.success("Transaction updated successfully");
+
+      if (response) {
+        onSuccess();
+        setOpen(false);
+        toast.success("Transaction updated successfully");
+      }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to update transaction"
-      );
+      toast.error(error instanceof Error ? error.message : "Update failed");
       if (error.message.includes("permission")) {
-        // Redirect to transactions list if unauthorized
         router.push("/transactions");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" onClick={handleOpen}>
+        <Button variant="ghost" size="sm">
           Edit
         </Button>
       </DialogTrigger>
@@ -75,6 +80,7 @@ export function EditTransactionDialog({
           onSubmit={handleSubmit}
           categories={categories}
           buttonText="Save Changes"
+          loading={loading}
         />
       </DialogContent>
     </Dialog>

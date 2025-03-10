@@ -102,19 +102,21 @@ export default function TransactionsPage() {
                 </span>
               </TableCell>
               <TableCell>
-                <div className="flex gap-2">
-                  <EditTransactionDialog
-                    transaction={transaction}
-                    onSuccess={loadTransactions}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(transaction.id)}
-                  >
-                    <TrashIcon className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
+                <EditTransactionDialog
+                  transaction={transaction}
+                  onSuccess={() => {
+                    // Refresh transactions after edit
+                    loadTransactions();
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(transaction.id)}
+                  disabled={loading}
+                >
+                  <TrashIcon className="h-4 w-4 text-red-500" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}
