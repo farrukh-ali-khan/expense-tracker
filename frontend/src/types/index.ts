@@ -1,16 +1,9 @@
+// src/types/index.ts
 export interface Transaction {
-  id: number;
-  description: string;
+  _id: string;
   amount: number;
-  type: "INCOME" | "EXPENSE";
-  category: Category;
+  description: string;
   date: string;
-  createdAt: string;
-}
-
-export interface Category {
-  id: number;
-  name: string;
-  userId: number;
-  createdAt: string;
+  category: string;
+  type: "income" | "expense";
 }
